@@ -26,6 +26,21 @@ from pathlib import Path
 from optparse import OptionParser
 import json
 
+ITEM_VARIETY = 2
+
+class Recipent():
+    def __init__(self, recipients:list):
+        self.number = 1
+        self.emails = recipients[0:self.number*ITEM_VARIETY:2].copy()
+        self.names = recipients[1:self.number*ITEM_VARIETY+1:2].copy()
+        # print(f'receiver_number:{self.number}, names{'、 '.join(self.names)}')
+        
+    def get_email(self)->list:
+        return self.emails
+    
+    def get_names(self)->list:
+        return self.names
+
 
 def connectSMTP(userid, password) -> smtplib.SMTP_SSL:
     try:
@@ -68,9 +83,9 @@ def load_account_config():
 
 
 def load_recipient_list(path):
-    with open(path, 'r', newline='', encoding="utf-8") as csvfile:
+    with open(path, 'r', newline='', encoding="utf-8-sig") as csvfile:
         recipients = csv.reader(csvfile)
-        recipients = [recipient[:2] for recipient in recipients]
+        recipients = [Recipent(recipient) for recipient in recipients]
 
     return recipients
 
@@ -79,10 +94,11 @@ def handle_recipient_title(recipients, recipTitle, lastNameOnly):
     # cat title to recipient names
     if len(recipTitle) > 0:
         for recipient in recipients:
-            if lastNameOnly:
-                recipient[0] = recipient[0][0] + recipTitle
-            else:
-                recipient[0] += recipTitle
+            for name in recipient.get_names():
+                if lastNameOnly:
+                    name = name[0] + recipTitle
+                else:
+                    name += recipTitle
 
     return recipients
 
@@ -122,10 +138,10 @@ def attach_files(msg, path):
         msg.attach(attachment)
 
 
-def send_mail(email, server) -> bool:
+def send_mail(email, server, recipients) -> bool:
     try:
-        server.sendmail(email["From"], email["To"], email.as_string())
-    except:
+        server.sendmail(email["From"], recipients, email.as_string())
+    except Exception as inst:
         print(f'failed to send email to {email["To"]}')
         return False
 
@@ -194,7 +210,7 @@ def handle_bounce_backs(retr_n, recipients, userid, password) -> int:
 
                 # match for email addresses
                 bounced = re.findall(
-                    '[a-z0-9-_\.]+@[a-z0-9-\.]+\.[a-z\.]{2,5}', body)
+                    r'[a-z0-9-_\.]+@[a-z0-9-\.]+\.[a-z\.]{2,5}', body)
 
                 if bounced:
                     bounced = str(bounced[0].replace(userid, ''))
@@ -213,6 +229,7 @@ def handle_bounce_backs(retr_n, recipients, userid, password) -> int:
         print('No bounce-backs found, all emails are delivered successfully')
 
     return len(bounced_list)
+
 
 
 def main(opts, args):
@@ -237,16 +254,18 @@ def main(opts, args):
         recipients = load_recipient_list(email_list_path)
 
     recipients = handle_recipient_title(recipients, recipTitle, lastNameOnly)
+    recipients_num = 0
+    for recipient in recipients:
+        recipients_num += recipient.number
 
     # load content as template string
-    email_html = Template(Path(email_content_path).read_text(encoding="utf-8"))
-
+    email_html = Template(Path(email_content_path).read_text(encoding="UTF-8-sig"))
     smtp = connectSMTP(userid, password)
     sent_n = 0
 
     if not opts.test and not opts.yes:
         isSure = input(
-            f'about send emails to {len(recipients)} recipients, are you sure? [yn]:\n')
+            f'about send emails to {recipients_num} recipients, are you sure? [yn]:\n')
         if isSure == 'y' or isSure == 'Y':
             pass
         else:
@@ -260,13 +279,17 @@ def main(opts, args):
 
         # letter content
         body = email_html.substitute(
-            {"recipient": recipient[0], "sender": sender_name})
+            {"recipient": '、 '.join(recipient.get_names()), "sender": sender_name})
         email.attach(MIMEText(body, "html"))
-
-        if '@' in recipient[1]:
-            email["To"] = recipient[1]
-        else:
-            email["To"] = recipient[1] + "@ntu.edu.tw"
+        
+        addr_list = []
+        for addr in recipient.get_email():
+            if '@' in addr:
+                addr_list.append(addr)
+            else:
+                addr_list.append(addr + "@ntu.edu.tw")
+        
+        email["To"] = ",".join(addr_list)
 
         # check if the 'from' field in config.json is filled
         if len(email_from) > 0:
@@ -279,7 +302,7 @@ def main(opts, args):
         if opts.nosend:
             continue
 
-        success = send_mail(email, smtp)
+        success = send_mail(email, smtp, addr_list)
         sent_n += 1 if success else 0
         server_rest(sent_n)
 
