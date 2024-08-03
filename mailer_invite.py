@@ -72,6 +72,8 @@ def load_recipient_list(path):
         recipients = csv.reader(csvfile)
         recipients = [recipient[:2] for recipient in recipients]
 
+    recipients = recipients[0:400]
+    # recipients = recipients[400:]
     return recipients
 
 
@@ -80,9 +82,9 @@ def handle_recipient_title(recipients, recipTitle, lastNameOnly):
     if len(recipTitle) > 0:
         for recipient in recipients:
             if lastNameOnly:
-                recipient[0] = recipient[0][0] + recipTitle
+                recipient[1] = recipient[1][0] + recipTitle
             else:
-                recipient[0] += recipTitle
+                recipient[1] += recipTitle
 
     return recipients
 
@@ -232,7 +234,7 @@ def main(opts, args):
 
     # load recipient list
     if opts.test:
-        recipients = [["王小明", f'{userid}@ntu.edu.tw']]
+        recipients = [["B11901056", "詹翔允"]]
     else:
         recipients = load_recipient_list(email_list_path)
 
@@ -260,13 +262,13 @@ def main(opts, args):
 
         # letter content
         body = email_html.substitute(
-            {"recipient": recipient[0], "sender": sender_name})
+            {"recipient": recipient[1], "sender": sender_name})
         email.attach(MIMEText(body, "html"))
 
-        if '@' in recipient[1]:
-            email["To"] = recipient[1]
+        if '@' in recipient[0]:
+            email["To"] = recipient[0]
         else:
-            email["To"] = recipient[1] + "@ntu.edu.tw"
+            email["To"] = recipient[0] + "@ntu.edu.tw"
 
         # check if the 'from' field in config.json is filled
         if len(email_from) > 0:
