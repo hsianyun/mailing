@@ -70,9 +70,9 @@ def load_account_config():
 def load_recipient_list(path):
     with open(path, 'r', newline='', encoding="utf-8") as csvfile:
         recipients = csv.reader(csvfile)
-        recipients = [recipient[:2] for recipient in recipients]
+        recipients = [recipient[:4] for recipient in recipients]
 
-    recipients = recipients[0:2]
+    # recipients = recipients[0:400]
     # recipients = recipients[400:]
     return recipients
 
@@ -234,7 +234,7 @@ def main(opts, args):
 
     # load recipient list
     if opts.test:
-        recipients = [["B11901056", "詹翔允"]]
+        recipients = [["B11901056", "詹翔允","2","aa1234"]]
     else:
         recipients = load_recipient_list(email_list_path)
 
@@ -262,7 +262,7 @@ def main(opts, args):
 
         # letter content
         body = email_html.substitute(
-            {"recipient": recipient[1], "sender": sender_name})
+            {"name": recipient[1], "sender": sender_name, "account": recipient[0], "password":recipient[3]})
         email.attach(MIMEText(body, "html"))
 
         if '@' in recipient[0]:
