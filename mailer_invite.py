@@ -72,8 +72,11 @@ def load_recipient_list(path):
         recipients = csv.reader(csvfile)
         recipients = [recipient[:4] for recipient in recipients]
 
-    # recipients = recipients[0:400]
-    # recipients = recipients[400:]
+    recipients = recipients[244:245]      #1
+    # recipients = recipients[150:300]    #2
+    # recipients = recipients[300:450]    #3
+    # recipients = recipients[450:600]    #4
+    # recipients = recipients[600:]       #5
     return recipients
 
 
