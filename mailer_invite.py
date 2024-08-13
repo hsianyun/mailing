@@ -85,7 +85,7 @@ def load_account_config():
 def load_recipient_list(path):
     with open(path, 'r', newline='', encoding="utf-8-sig") as csvfile:
         recipients = csv.reader(csvfile)
-        recipients = [Recipent(recipient) for recipient in recipients]
+        recipients = [recipient[0] for recipient in recipients]
 
     return recipients
 
@@ -142,7 +142,7 @@ def send_mail(email, server, recipients) -> bool:
     try:
         server.sendmail(email["From"], recipients, email.as_string())
     except Exception as inst:
-        print(f'failed to send email to {email["To"]}')
+        print(f'failed to send email to {email["Bcc"]}')
         return False
 
     print(f'Sent mail to {email["To"]}')
@@ -253,10 +253,8 @@ def main(opts, args):
     else:
         recipients = load_recipient_list(email_list_path)
 
-    recipients = handle_recipient_title(recipients, recipTitle, lastNameOnly)
-    recipients_num = 0
-    for recipient in recipients:
-        recipients_num += recipient.number
+    # recipients = handle_recipient_title(recipients, recipTitle, lastNameOnly)
+    recipients_num = len(recipients)
 
     # load content as template string
     email_html = Template(Path(email_content_path).read_text(encoding="UTF-8-sig"))
@@ -272,39 +270,39 @@ def main(opts, args):
             print('Please check the email in test mode before you send it.')
             exit()
 
-    for recipient in recipients:
-        email = MIMEMultipart()
-        email["Subject"] = email_subject
-        email["Date"] = formatdate(localtime=True)
 
-        # letter content
-        body = email_html.substitute(
-            {"recipient": '、 '.join(recipient.get_names()), "sender": sender_name})
-        email.attach(MIMEText(body, "html"))
-        
-        addr_list = []
-        for addr in recipient.get_email():
-            if '@' in addr:
-                addr_list.append(addr)
-            else:
-                addr_list.append(addr + "@ntu.edu.tw")
-        
-        email["To"] = ",".join(addr_list)
+    email = MIMEMultipart()
+    email["Subject"] = email_subject
+    email["Date"] = formatdate(localtime=True)
 
-        # check if the 'from' field in config.json is filled
-        if len(email_from) > 0:
-            email['From'] = formataddr((email_from, f'{userid}@ntu.edu.tw'))
+    # letter content
+    body = email_html.substitute(
+        {"sender": sender_name})
+    email.attach(MIMEText(body, "html"))
+    
+    addr_list = []
+    for addr in recipients:
+        if '@' in addr:
+            addr_list.append(addr)
+        else:
+            addr_list.append(addr + "@ntu.edu.tw")
+    
+    email["Bcc"] = ",".join(addr_list)
 
-        # attach enerything in '/attachments' folder
-        if(opts.attach):
-            attach_files(email, email_attachments_path)
+    # check if the 'from' field in config.json is filled
+    if len(email_from) > 0:
+        email['From'] = formataddr((email_from, f'{userid}@ntu.edu.tw'))
 
-        if opts.nosend:
-            continue
+    # # attach enerything in '/attachments' folder
+    # if(opts.attach):
+    #     attach_files(email, email_attachments_path)
 
-        success = send_mail(email, smtp, addr_list)
-        sent_n += 1 if success else 0
-        server_rest(sent_n)
+    # if opts.nosend:
+    #     continue
+
+    success = send_mail(email, smtp, addr_list)
+    sent_n += 1 if success else 0
+    server_rest(sent_n)
 
     smtp.quit()
 
