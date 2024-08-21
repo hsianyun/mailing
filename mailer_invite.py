@@ -249,7 +249,7 @@ def main(opts, args):
 
     # load recipient list
     if opts.test:
-        recipients = [["王小明", f'{userid}@ntu.edu.tw']]
+        recipients = ["B11901056"]
     else:
         recipients = load_recipient_list(email_list_path)
 
