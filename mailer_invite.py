@@ -72,7 +72,7 @@ def load_recipient_list(path):
         recipients = csv.reader(csvfile)
         recipients = [recipient[:4] for recipient in recipients]
 
-    recipients = recipients[0:2]      #1
+    recipients = recipients[:4]      #1
     # recipients = recipients[150:300]    #2
     # recipients = recipients[300:450]    #3
     # recipients = recipients[450:600]    #4
@@ -237,7 +237,7 @@ def main(opts, args):
 
     # load recipient list
     if opts.test:
-        recipients = [["B11901056", "詹翔允","2","aa1234"]]
+        recipients = [["hsianyun2003@gmail.com", "詹翔允","9/19(四)","13:50"]]
     else:
         recipients = load_recipient_list(email_list_path)
 
@@ -264,8 +264,10 @@ def main(opts, args):
         email["Date"] = formatdate(localtime=True)
 
         # letter content
+        # body = email_html.substitute(
+        #     {"name": recipient[1], "sender": sender_name, "account": recipient[0], "password":recipient[3]})
         body = email_html.substitute(
-            {"name": recipient[1], "sender": sender_name, "account": recipient[0], "password":recipient[3]})
+            {"name": recipient[1], "sender": sender_name, "date":recipient[2], "time":recipient[3]})
         email.attach(MIMEText(body, "html"))
 
         if '@' in recipient[0]:
