@@ -194,7 +194,7 @@ def handle_bounce_backs(retr_n, recipients, userid, password) -> int:
 
                 # match for email addresses
                 bounced = re.findall(
-                    '[a-z0-9-_\.]+@[a-z0-9-\.]+\.[a-z\.]{2,5}', body)
+                    r'[a-z0-9-_.]+@[a-z0-9-.]+.[a-z.]{2,5}', body)
 
                 if bounced:
                     bounced = str(bounced[0].replace(userid, ''))
